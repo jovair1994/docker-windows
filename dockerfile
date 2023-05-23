@@ -1,5 +1,3 @@
-# Dockerfile for the VM container Linux with noVNC
-
 # Base image
 FROM ubuntu:latest
 
@@ -22,7 +20,6 @@ RUN apt-get update && apt-get install -y \
 # Copy the VM images to the container
 COPY win10.qcow2 /root/
 
-
 # Set up noVNC
 ENV NO_VNC_HOME=/root/noVNC
 ENV VNC_PORT=5900
@@ -34,8 +31,10 @@ EXPOSE $NO_VNC_PORT
 COPY vnc_startup.sh $NO_VNC_HOME/utils/
 RUN chmod +x $NO_VNC_HOME/utils/vnc_startup.sh
 
-#Aqui fiquei na dúvida se usaria ENTRYPOINT ou CMD. De qualquer forma, nenhum dos dois funcionou.
+# Add script to run qemu command
+COPY run_qemu.sh /root/
+RUN chmod +x /root/run_qemu.sh
 
-# Set Entry
-
-#ENTRYPOINT ["/root/noVNC/utils/vnc_startup.sh"]
+# Set entry point to run the qemu command
+ENTRYPOINT ["/usr/bin/qemu-system-x86_64"]
+CMD ["-name", "nome_do_container", "-m", "2048", "-cpu", "host", "-enable-kvm", "-smp", "2", "-drive", "file=/root/win10.qcow2,if=virtio", "-net", "nic,model=virtio", "-net", "user", "-soundhw", "hda", "-usb", "-device", "usb-tablet", "-vnc", ":0", "-display", "none"]
