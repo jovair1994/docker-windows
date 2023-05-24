@@ -12,8 +12,7 @@ RUN ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime && \
 # Install necessary packages2
 RUN apt-get update && apt-get install -y \
     qemu-kvm \
-    novnc \
-    websockify \
+    wget \
     curl \
     && rm -rf /var/lib/apt/lists/*
     
@@ -23,18 +22,31 @@ COPY win10.qcow2 /root/
 # Set up noVNC
 ENV NO_VNC_HOME=/root/noVNC
 ENV VNC_PORT=5900
-ENV NO_VNC_PORT=6080
-RUN mkdir -p $NO_VNC_HOME/utils/websockify && \
-    curl -L -o $NO_VNC_HOME/utils/websockify/websockify.py https://github.com/novnc/websockify/blob/master/websockify.py && \
-    chmod +x $NO_VNC_HOME/utils/websockify/websockify.py
+ENV NO_VNC_PORT=5000
+
+
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    net-tools \
+    python3-numpy \
+    python3-dev \
+    python3-setuptools \
+    python3-websockify \
+    novnc && \
+    apt-get clean
+
+# Download noVNC release
+RUN wget https://codeload.github.com/novnc/noVNC/tar.gz/refs/tags/v1.4.0 && \
+    tar -xzvf v1.4.0 && \
+    mv noVNC-1.4.0 /opt/novnc && \
+    rm v1.4.0 && \
+    cp -f /opt/novnc/vnc.html /opt/novnc/index.html
+
+
 EXPOSE $NO_VNC_PORT
+
 COPY vnc_startup.sh $NO_VNC_HOME/utils/
 RUN chmod +x $NO_VNC_HOME/utils/vnc_startup.sh
 
-# Add script to run qemu command
-COPY run_qemu.sh /root/
-RUN chmod +x /root/run_qemu.sh
-
-# Set entry point to run the qemu command
-ENTRYPOINT ["/usr/bin/qemu-system-x86_64"]
-CMD ["-name", "nome_do_container", "-m", "2048", "-cpu", "host", "-enable-kvm", "-smp", "2", "-drive", "file=/root/win10.qcow2,if=virtio", "-net", "nic,model=virtio", "-net", "user", "-soundhw", "hda", "-usb", "-device", "usb-tablet", "-vnc", ":0", "-display", "none"]
+ENTRYPOINT ["/root/noVNC/utils/vnc_startup.sh"]
