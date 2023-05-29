@@ -43,6 +43,34 @@ RUN wget https://codeload.github.com/novnc/noVNC/tar.gz/refs/tags/v1.4.0 && \
     rm v1.4.0 && \
     cp -f /opt/novnc/vnc.html /opt/novnc/index.html
 
+RUN apt-get update 
+ENV DEBIAN_FRONTEND=noninteractive 
+RUN apt-get install -y samba
+
+
+# Criar pastas compartilhadas
+RUN mkdir /cases 
+
+
+# Configurar as permissões das pastas compartilhadas
+RUN chmod -R 777 /cases 
+RUN chmod -R 777 /mnt
+
+# Adicionar compartilhamentos no arquivo de configuração do Samba
+RUN echo "[cases]" >> /etc/samba/smb.conf 
+RUN echo "path = /cases" >> /etc/samba/smb.conf 
+RUN echo "guest ok = yes" >> /etc/samba/smb.conf
+RUN echo "read only = no" >> /etc/samba/smb.conf
+RUN echo "" >> /etc/samba/smb.conf 
+RUN echo "[mnt]" >> /etc/samba/smb.conf
+RUN echo "path = /mnt" >> /etc/samba/smb.conf 
+RUN echo "guest ok = yes" >> /etc/samba/smb.conf
+RUN echo "read only = no" >> /etc/samba/smb.conf
+
+# Expor as portas 139,445 para permitir o acesso ao servidor Samba
+EXPOSE 139
+EXPOSE 445
+
 
 EXPOSE $NO_VNC_PORT
 
